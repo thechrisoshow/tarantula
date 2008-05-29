@@ -103,6 +103,29 @@ describe 'Relevance::Tarantula::Crawler#report_results' do
     crawler.expects(:generate_reports)
     crawler.report_results
   end
+    
+  it "should raise an error if one of the report raises an error" do
+    crawler = Crawler.new
+    Relevance::Tarantula::IOReporter.any_instance.stubs(:finish_report).raises(RuntimeError)
+    should.raise {crawler.report_results}
+  end
+
+  it "should remember reporter error message" do
+    crawler = Crawler.new
+    Relevance::Tarantula::IOReporter.any_instance.stubs(:finish_report).raises(RuntimeError, "bananas")
+    exception = should.raise {crawler.report_results}
+    assert_match /bananas/, exception.message
+  end
+
+  it "should remember several reporter error messages with carriage return delimiter" do
+    new_reporter = Relevance::Tarantula::IOReporter.new($stderr)
+    crawler = Crawler.new
+    crawler.stubs(:reporters).returns([new_reporter, new_reporter])
+    Relevance::Tarantula::IOReporter.any_instance.stubs(:finish_report).raises(RuntimeError, "bananas")
+    exception = should.raise {crawler.report_results}
+    assert_match /bananas\nbananas/, exception.message    
+  end
+  
 end
 
 describe 'Relevance::Tarantula::Crawler#crawling' do
